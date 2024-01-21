@@ -21,32 +21,40 @@ def entropy(p_pass,p_fails,set):
 # this fuction calculates the best info gain of each attribute in the dataset      
 def calculate_BestInfoGain(label,df): #Atribute is the column of the data frame
     
+    #calculate the Information gain for each attribute
+    infoGain_values = {}
     for (attribute, set)  in df.iteritems():
         
         if(attribute == "Ripe"): continue
-        # for attribute in columnName.values:
-        #     print(attribute)
         features = df[attribute].unique()
         # calculating the number of pass and fail labels to compute entropy for each value of Attribute
         average = 0
         s = len(df)
+        # keep track of attribute with highest gain
+        
         for x in features:
-            p_pass = df[(df[attribute] == x) & (df[label] == "e")]
+            p_pass = df[(df[attribute] == x) & (df[label] == "T")]
             p_pass = len(p_pass)
-            p_fails = df[(df[attribute] == x) & (df[label] == "p")]
+            p_fails = df[(df[attribute] == x) & (df[label] == "F")]
             p_fails = len(p_fails)
 
             sv = p_pass + p_fails
             Hs = entropy(p_pass,p_fails,sv)
             average += Hs * (p_pass + p_fails) / s
-        gain = 1 - average
-        print(attribute,gain)   
-    return gain
+        
+        infoGain = 1 - average
+        infoGain_values[attribute] = infoGain
+    
+    #getting the attribute with the highest gain
+    best_attribute = max(infoGain_values, key=lambda k: infoGain_values[k])
+    best_gain = infoGain_values[best_attribute]
+    return best_attribute,best_gain
 
 
 def main():
-    df = pd.read_csv('data/train.csv')
-    calculate_BestInfoGain('label',df)
-
+    df = pd.read_csv('data/dummy.csv')
+    best_attribute,best_gain = calculate_BestInfoGain('Ripe',df)
+    print(best_attribute,best_gain)
+    
 if __name__ == "__main__":
     main()
