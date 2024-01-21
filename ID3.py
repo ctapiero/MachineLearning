@@ -17,35 +17,36 @@ def ID3(S,attributes):
 def entropy(p_pass,p_fails,set):
     if(p_pass == 0 or p_fails == 0): return 0
     return - ((p_pass/set)*np.log2(p_pass/set)) - ((p_fails/set)*np.log2(p_fails/set))
-       
-def calculate_bestInfoGain(attribute,label,df): #Atribute is the column of the data frame
 
-    # list all features
-    features = df[attribute].unique()
-    # calculating the number of pass and fail labels to compute entropy for each value of Attribute
-    average = 0
-    s = len(df)
-    for x in features:
-        p_pass = df[(df[attribute] == x) & (df[label] == "T")]
-        p_pass = len(p_pass)
-        p_fails = df[(df[attribute] == x) & (df[label] == "F")]
-        p_fails = len(p_fails)
-
-        sv = p_pass + p_fails
-        Hs = entropy(p_pass,p_fails,sv)
-        average += Hs * (p_pass + p_fails) / s
+# this fuction calculates the best info gain of each attribute in the dataset      
+def calculate_BestInfoGain(label,df): #Atribute is the column of the data frame
     
-    gain = 1 - average
-    print(gain)    
+    for (attribute, set)  in df.iteritems():
+        
+        if(attribute == "Ripe"): continue
+        # for attribute in columnName.values:
+        #     print(attribute)
+        features = df[attribute].unique()
+        # calculating the number of pass and fail labels to compute entropy for each value of Attribute
+        average = 0
+        s = len(df)
+        for x in features:
+            p_pass = df[(df[attribute] == x) & (df[label] == "e")]
+            p_pass = len(p_pass)
+            p_fails = df[(df[attribute] == x) & (df[label] == "p")]
+            p_fails = len(p_fails)
+
+            sv = p_pass + p_fails
+            Hs = entropy(p_pass,p_fails,sv)
+            average += Hs * (p_pass + p_fails) / s
+        gain = 1 - average
+        print(attribute,gain)   
     return gain
 
 
 def main():
-    df = pd.read_csv('data/dummy.csv')
-    calculate_bestInfoGain("Variety","Ripe",df)
-    calculate_bestInfoGain("Color","Ripe",df)
-    calculate_bestInfoGain("Smell","Ripe",df)
-    calculate_bestInfoGain("Time","Ripe",df)
+    df = pd.read_csv('data/train.csv')
+    calculate_BestInfoGain('label',df)
 
 if __name__ == "__main__":
     main()
