@@ -28,7 +28,6 @@ def entropy(p_pass,p_fails,set):
     if(p_pass == 0 or p_fails == 0): return 0
     return - ((p_pass/set)*np.log2(p_pass/set)) - ((p_fails/set)*np.log2(p_fails/set))
 
-y = 1
 # this fuction calculates the best info gain of each attribute in the dataset      
 def calculate_BestInfoGain(df): #Atribute is the column of the data frame
     
@@ -69,7 +68,7 @@ def calculate_BestInfoGain(df): #Atribute is the column of the data frame
     return best_attribute,best_gain
 
 
-def ID3(S,attributes,max_length,current_legth=1):
+def ID3(S,attributes,max_length="",current_legth=1):
     label_column = 'label'
     labels= S[label_column]
     unique_values_labels = np.unique(labels)
@@ -80,7 +79,8 @@ def ID3(S,attributes,max_length,current_legth=1):
 
     # else create note with atributes and split base on entropy 
     best_attribute,best_gain = calculate_BestInfoGain(S)
-    print(best_attribute,best_gain)
+    if(current_legth == 1):
+        print(f"root node: {best_attribute} \nInformation gain:{best_gain:.3f}")
 
     # get branch nodes
     nodes_bestBranch = S[best_attribute]
@@ -88,7 +88,6 @@ def ID3(S,attributes,max_length,current_legth=1):
     node_name = 'node'
     rootNode = DecisionTreeNode(name=node_name,informationGain=best_gain,branches={},feature=best_attribute)
     # for each value of the attribute in rootNode (Smell)   
-        # 1. add a node
     
     for node in nodes_bestBranch:
         # subset of values with the node there, or rows with that value in it
@@ -109,7 +108,7 @@ def export_df(df,filename):
 
 def predict(tree, data_point):
     # Traverse the tree until a leaf node is reached
-# Traverse the tree until a leaf node is reached
+    # Traverse the tree until a leaf node is reached
     while tree and tree.branches:
         feature_value = data_point[tree.feature]
         tree = tree.branches.get(feature_value, None)
@@ -139,18 +138,23 @@ def evaluate(dataset,model):
         predicted_labels.append(predicted_label)
     labels = dataset[label_column].to_numpy() #actual labels
     accuracy_training = calculate_accuracy(predicted_labels, labels)
-    print(f"Accuracy: {accuracy_training * 100:.2f}% \n")
+    print(f"Accuracy: {accuracy_training:.3f} \n")
+    return accuracy_training
 
-def kfold_crossval_tree(model,k_array,depth):
-  
-    for i, val in enumerate(k_array):
-        training_set = k_array[:i] + k_array[i+1:]
+def standard_deviation(data):
+    mean = sum(data) / len(data)
+    variance = sum((x - mean) ** 2 for x in data) / len(data)
+    std_deviation = variance ** 0.5
+    return std_deviation
+
+def kfold_crossval_tree(k_array,depth):
+    x_validations = []
+    for i, val in enumerate(k_array): #here we are iterating over each possible k-fold train and val
+        print("K fold Iteration : ", i+1)
+        training_set = k_array[:i] + k_array[i+1:] 
         validation_set = [val]
-        # print(validation_set)
-        # print("Iteration", i+1)
-        # print("Training set:", training_set)
-        # print("Validation set:", validation_set)
-        # print()
+        
+        # create combined df 
         k_train = pd.DataFrame(columns=k_array[0].columns)
         k_train = k_train.append(training_set, ignore_index=True)
         k_test = pd.DataFrame(columns=k_array[0].columns)
@@ -159,12 +163,16 @@ def kfold_crossval_tree(model,k_array,depth):
         # build model with k_train
         label_column = 'label'
         attributes = k_train.drop(columns=label_column)
-        print("tree Depth: ",depth)
         k_model = ID3(k_train,attributes,depth)
         # evaluate k_model in validation set
-        print("K fold Iteration : ", i+1)
-        evaluate(k_test,k_model)
-        
+        x_validation = evaluate(k_test,k_model)
+        x_validations.append(x_validation)
+    average_xvalidation = sum(x_validations) / len(x_validations)
+    std_dev = standard_deviation(x_validations)
+    print(f"standard_deviation x-validation: {std_dev:.3f}")
+    print(f"average x-validation: {average_xvalidation:.3f}\n")
+    return average_xvalidation
+
 def main():
     
     #reading data
@@ -179,44 +187,56 @@ def main():
     mostcommon_label_test = label2.mode()
     training_set["stalk-root"] = training_set["stalk-root"].replace('?', mostcommon_label_training[0])
     test_set["stalk-root"] = test_set["stalk-root"].replace('?', mostcommon_label_test[0])
-    export_df(test_set,"mamamia")
     
     label_column = 'label'
     attributes = training_set.drop(columns=label_column)
 
-    #building the model with a decision Tree
-    decision_tree = ID3(training_set,attributes,max_length=15)
-    
     #Evaluating tree on data
-    print("predicting training data")
-    print("--------------------")
+    print("------------------------")
+    print("**Full Tree**")
+    print("------------------------")
+    #calculate entropy of data
+    p_values= test_set[label_column].value_counts()
+    data_entropy = entropy(p_values[0],p_values[1],len(test_set))
+    print(f"entropy: {data_entropy}")
+    #building the model with a decision Tree
+    decision_tree = ID3(training_set,attributes)
+    print("--Training data--")
     evaluate(training_set,decision_tree)
+    print("--Test data--")
+    evaluate(test_set,decision_tree) 
+    print(f"Tree depth: {decision_tree.depth()}")
 
-    print("predicting test data")
-    print("--------------------")
-    evaluate(test_set,decision_tree)
-    
-    print("Decision Tree Depth")
-    print("--------------------")
-    print(f"The depth: {decision_tree.depth()}")
-
-    print()
-    print("K fold cross validations")
-    print("--------------------")
+    print("------------------------")
+    print("**K fold cross validations**\n")
     #reading in kfold data and putting it in an array
     fold1 = pd.read_csv('data/CVfolds_new/fold1.csv')  
     fold2 = pd.read_csv('data/CVfolds_new/fold2.csv')    
     fold3 = pd.read_csv('data/CVfolds_new/fold3.csv')    
     fold4 = pd.read_csv('data/CVfolds_new/fold4.csv')    
     fold5 = pd.read_csv('data/CVfolds_new/fold5.csv')    
-
-    #debugging with dummy data
-    # f1,f2,f3,f4 = np.array_split(training_set,4)
-    # k_dummy = [f1,f2,f3,f4]
-    # List of DataFrames
     k_array = [fold1,fold2,fold3,fold4,fold5]
-    
-    kfold_crossval_tree(decision_tree,k_array,depth=7)
+    depths = [1, 2, 3, 4, 5, 10, 15]
+    #cross validation with different depths
+    for depth in depths:
+        print(f"cross validation with depth {depth}")
+        print("------------------------------")
+        kfold_crossval_tree(k_array,depth=depth)
+        print("------------------------------")
+
+    print("best depth is 5")
+    #using depth 5 to build tree on training set
+    print()
+    print("limiting set info on full data")
+    print("------------------------------")
+    decision_tree = ID3(training_set,attributes,max_length=4)
+    print("------------------------------")
+    print("Accuracy of trained classifier in training set")
+    evaluate(training_set,decision_tree)
+    print("------------------------------")
+    print("Accuracy of trained classifier in test set")
+    evaluate(test_set,decision_tree)
+    print("------------------------------")
 
 if __name__ == "__main__":
     
