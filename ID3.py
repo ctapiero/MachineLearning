@@ -138,7 +138,7 @@ def evaluate(dataset,model):
         predicted_labels.append(predicted_label)
     labels = dataset[label_column].to_numpy() #actual labels
     accuracy_training = calculate_accuracy(predicted_labels, labels)
-    print(f"Accuracy: {accuracy_training:.3f} \n")
+    print(f"Accuracy: {accuracy_training:.3f}")
     return accuracy_training
 
 def standard_deviation(data):
@@ -149,6 +149,7 @@ def standard_deviation(data):
 
 def kfold_crossval_tree(k_array,depth):
     x_validations = []
+    best_kdepth = []
     for i, val in enumerate(k_array): #here we are iterating over each possible k-fold train and val
         print("K fold Iteration : ", i+1)
         training_set = k_array[:i] + k_array[i+1:] 
@@ -167,10 +168,17 @@ def kfold_crossval_tree(k_array,depth):
         # evaluate k_model in validation set
         x_validation = evaluate(k_test,k_model)
         x_validations.append(x_validation)
+        best_kdepth.append(k_model.depth())
+        print("depth:",k_model.depth())
+        print()
     average_xvalidation = sum(x_validations) / len(x_validations)
     std_dev = standard_deviation(x_validations)
     print(f"standard_deviation x-validation: {std_dev:.3f}")
-    print(f"average x-validation: {average_xvalidation:.3f}\n")
+    print(f"average x-validation: {average_xvalidation:.3f}")
+    best_depth = max(x_validations)
+    best_depth_index = x_validations.index(best_depth)
+    best_depth = best_kdepth[best_depth_index]
+    print(f"best k fold depth: {best_depth}\n")
     return average_xvalidation
 
 def main():
@@ -208,7 +216,7 @@ def main():
     print(f"Tree depth: {decision_tree.depth()}")
 
     print("------------------------")
-    print("**K fold cross validations**\n")
+    print("**K fold cross validations Limiting Depth**\n")
     #reading in kfold data and putting it in an array
     fold1 = pd.read_csv('data/CVfolds_new/fold1.csv')  
     fold2 = pd.read_csv('data/CVfolds_new/fold2.csv')    
@@ -224,7 +232,7 @@ def main():
         kfold_crossval_tree(k_array,depth=depth)
         print("------------------------------")
 
-    print("best depth is 5")
+    print("best cross validation depth is 7")
     #using depth 5 to build tree on training set
     print()
     print("limiting set info on full data")
