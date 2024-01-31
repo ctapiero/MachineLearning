@@ -141,12 +141,6 @@ def evaluate(dataset,model):
     print(f"Accuracy: {accuracy_training:.3f}")
     return accuracy_training
 
-def standard_deviation(data):
-    mean = sum(data) / len(data)
-    variance = sum((x - mean) ** 2 for x in data) / len(data)
-    std_deviation = variance ** 0.5
-    return std_deviation
-
 def kfold_crossval_tree(k_array,depth):
     x_validations = []
     best_kdepth = []
@@ -172,7 +166,7 @@ def kfold_crossval_tree(k_array,depth):
         print("depth:",k_model.depth())
         print()
     average_xvalidation = sum(x_validations) / len(x_validations)
-    std_dev = standard_deviation(x_validations)
+    std_dev = np.std(x_validations)
     print(f"standard_deviation x-validation: {std_dev:.3f}")
     print(f"average x-validation: {average_xvalidation:.3f}")
     best_depth = max(x_validations)
