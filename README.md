@@ -1,7 +1,7 @@
 # MachineLearning
 # Autor: Cristian Tapiero
 This project implements the ID3 algorithm to build a decision tree
-and trains and test accuracy of model on data
+and trains and test accuracy of model on mushrom data.
 
 Steps to run script
 - make the script executable:
